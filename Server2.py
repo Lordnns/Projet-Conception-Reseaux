@@ -70,11 +70,6 @@ def handle_client(client_sock):
                     client_sock.send(b"" + message)
 
         # END OF SENDING PHASE
-        import time
-        time.sleep(0.1)
-        message = "END"
-        message = message.encode()
-        client_sock.send(b"" + message)
         data = client_sock.recv(1024)
     print("Client disconnected".format())
 

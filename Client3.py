@@ -3,8 +3,15 @@ import json
 client_add = input('client IP: ')
 stop = 0
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+from queue import Queue
+
+message_queue = Queue()
 
 def get_input():
+    # Flush all queued messages
+    while not message_queue.empty():
+        print(message_queue.get())
+        
     while True:
         valid = 1
         message = input('This is a message from client 3: ')

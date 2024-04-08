@@ -58,7 +58,7 @@ def get_input_non_blocking_windows():
             is_typing = True
             char = msvcrt.getwch()  # Read the character
             
-            if char == '\r':  # If it's the Enter key
+            if char in ('\r', '\n'):  # If it's the Enter key
                 print()
                 is_typing = False
                 prompt_written = False
@@ -103,6 +103,9 @@ def get_input(message):
             message = '{'+'"client_address": ' + '"' + client_add + '"' +',"protocol": ' + '"' + protocol + '"' + ', "operation": ' + '"' + operation + '"' + ', "rsrcid": ' + '"' + rsrcid +'"' + '}'
         if valid == 1:
             return message, address_in, port_in, protocol
+        if valid == 0:
+            handle_invalid_command()
+            return None
 
 def handle_server_communication(message, address, port, protocol):
     server_address = (address, int(port))
@@ -143,6 +146,16 @@ def handle_server_communication(message, address, port, protocol):
         except Exception as e:
             print(f"Error communicating with server: {e}")
 
+def handle_invalid_command():
+    global prompt_written, take_new_command
+    console_lock.acquire()
+    print("Invalid command. Please try again.")
+    prompt_written = False  # Reset to allow re-prompting
+    take_new_command = True
+    console_lock.release()
+    
+    
+
 def rewrite_prompt():
     # Move the cursor up one line
     sys.stdout.write('\033[F')
@@ -175,8 +188,9 @@ def main():
     while not stop:
         global take_new_command
         if take_new_command:
-            command_info = get_input_non_blocking()
             take_new_command = False
+            command_info = get_input_non_blocking()
+            
             if command_info:
                 if command_info[0] == "stop":
                     stop = True

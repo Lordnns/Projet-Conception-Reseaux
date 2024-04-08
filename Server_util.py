@@ -1,5 +1,6 @@
 import json
 import socket
+from copy import deepcopy
 
 
 # fonction qui valide si l'entré est un JSON
@@ -146,15 +147,15 @@ def find_dollar(data):
                 return Key + " " + data[Key]
 
 
-# Fonction qui passe le message à get pour vérifier si il contient des $ de référencement.
-def handle_dollar(dic, data):
-    false_flag = dic
-    while isinstance(find_dollar(false_flag), str):
-        my_path = find_dollar(false_flag)
-        dic_copy = false_flag.copy()
-        false_flag = replace_dollar(my_path, dic_copy, data)
-    false_flag = json.dumps(false_flag)
-    return false_flag
+# Fonction qui passe le message à get pour vérifier s'il contient des $ de référencement.
+def handle_dollar(data_to_handle, origin_id):
+    data_copy = deepcopy(data_to_handle)  # pour pas modif l'original dans le dic serveur
+    reference_path = find_dollar(data_copy)
+    while isinstance(reference_path, str):
+        data_copy = replace_dollar(reference_path, data_copy, origin_id)
+        reference_path = find_dollar(data_copy)
+    data_copy = json.dumps(data_copy)
+    return data_copy
 
 
 

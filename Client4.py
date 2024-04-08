@@ -5,6 +5,11 @@ import socket
 import json
 import threading
 import time
+import os
+# Additional imports for Windows
+if os.name == 'nt':
+    import msvcrt
+    
 client_add = input('client IP: ')
 stop = 0
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,7 +22,7 @@ is_typing = False
 prompt_written = False
 take_new_command = True
 
-def get_input_non_blocking():
+def get_input_non_blocking_unix():
     
     global is_typing, prompt_written
     
@@ -36,7 +41,45 @@ def get_input_non_blocking():
             prompt_written = False
             flush_message_queue()
             return get_input(message)
+
+def get_input_non_blocking_windows():
+    global is_typing, prompt_written
     
+    input_line = ''  # Initialize an empty string to accumulate characters
+    
+    console_lock.acquire()
+    if not prompt_written:
+        print('Enter command: ', end='', flush=True)
+        prompt_written = True
+    console_lock.release()
+    
+    while True:
+        if msvcrt.kbhit():  # Check if a keypress is present
+            is_typing = True
+            char = msvcrt.getwch()  # Read the character
+            
+            if char == '\r':  # If it's the Enter key
+                print()
+                is_typing = False
+                prompt_written = False
+                flush_message_queue()
+                return get_input(input_line)
+            elif char == '\x08':  # Handle backspace
+                input_line = input_line[:-1]
+                sys.stdout.write('\b \b')
+            else:
+                input_line += char  # Add the character to the input line
+                sys.stdout.write(char)  # Echo the character since `getwch()` doesn't
+            sys.stdout.flush()
+        else:
+            time.sleep(0.1)
+  
+def get_input_non_blocking():
+    if os.name == 'posix':
+        return get_input_non_blocking_unix()
+    elif os.name == 'nt':
+        return get_input_non_blocking_windows()
+
 def get_input(message):  
         
         valid = 1
@@ -78,7 +121,7 @@ def handle_server_communication(message, address, port, protocol):
                 
             # For "WRDO" operations, spawn a new thread to handle continuous updates
             elif protocol == "wrdo":
-                global is_typing, message_queue, take_new_command
+                global is_typing, message_queue
                 message_received = 0
                 while True:
                     try:

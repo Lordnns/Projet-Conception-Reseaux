@@ -1,0 +1,13 @@
+POST rdo://127.0.0.1:8080/test {"a": "json"}
+
+POST rdo://127.0.0.1:8080/test2 {"ransom": "$rdo://127.0.0.1:8080/test", "ransom2": "$pankake", "stupid" : ["$rdo://127.0.0.1:8080/test", {"hello" : "world", "more_stupid" : ["$rdo://127.0.0.1:8080/test","$rdo://127.0.0.1:8080/test2"]}]}
+
+POST rdo://127.0.0.1:8080/test2 {"ransom": "$rdo://127.0.0.1:8080/test", "ransom2": "$rdo://127.0.0.1:8080/test2"}
+
+POST rdo://127.0.0.1:8080/test2 {"ransom2": "$pankake"}
+
+POST rdo://127.0.0.1:8080/test2 {"ransom": "$rdo://127.0.0.1:8080/test2"}
+
+GET rdo://127.0.0.1:8080/test2
+
+GET wrdo://127.0.0.1:8080/test

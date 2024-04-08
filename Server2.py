@@ -42,7 +42,6 @@ def handle_client(client_sock):
                     json.loads(message)
                     message = message.encode()
                     client_sock.send(b"" + message)
-                print(dic)
 
             # GET
             if data["operation"] == "GET":

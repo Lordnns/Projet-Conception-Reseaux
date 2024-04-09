@@ -140,11 +140,12 @@ def handle_server_communication(message, address, port, protocol):
                             if message_received == 1:
                                 take_new_command = True;
                     except Exception as e:
-                        print_server_response(f"Error listening for updates: {e}")
+                        print_server_response("Error listening for updates: {e}")
                         break
 
         except Exception as e:
-            print(f"Error communicating with server: {e}")
+            print("Error communicating with server: {e}")
+        
 
 def handle_invalid_command():
     global prompt_written, take_new_command

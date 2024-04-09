@@ -12,9 +12,10 @@ def handle_client(client_sock):
     remember = []
     # Receive and send data
     data = client_sock.recv(1024)
+    data = data.decode('utf-8')
     while data:
         # RECEIVE
-        print("Received: {}".format(data.decode('utf-8')))
+        print("Received: {}".format(data))
         if not validate_json(data):
             message = "request not a JSON"
             message = message.encode()

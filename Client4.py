@@ -141,7 +141,7 @@ def handle_server_communication(message, address, port, protocol):
                             data = s.recv(1024).decode()
                             message_received += 1
                             if not data:
-                                print_server_response("Connection closed by server.")
+                                #print_server_response("Connection closed by server.")
                                 break
                             if is_typing:
                                 message_queue.put(data)

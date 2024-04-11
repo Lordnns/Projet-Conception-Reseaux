@@ -6,16 +6,22 @@ server_add = input('server IP: ')
 port = 8080
 dic = {}
 subscriptions = {}
+client_handlers = {}
 dic_lock = threading.Lock()
+client_handler_lock = threading.Lock()
+subscription_lock = threading.Lock()
 
 class ClientHandler(threading.Thread):
     def __init__(self, client_sock, client_address):
         super().__init__()
         self.client_sock = client_sock
         self.client_address = client_address
-        self.subscribed_resources = []  # Resources this client is subscribed to
+        self.subscribed_resources = []
         self.send_update_trigger = False;
         self.update_message_instance = {}
+        self.client_id = ""
+        self.resource_to_subscribe_to = None
+        self.subscription_update_requested = False
 
     def run(self):
         print(f"Accepted connection from {self.client_address}")
@@ -73,11 +79,13 @@ class ClientHandler(threading.Thread):
         message_json = json.dumps(message)
         
         self.send_response(message_json)
-
+        
+        json_string = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"])
         update_message = {
             "server": server_add,
             "code": "210",
             "rsrc": data["rsrcid"],
+            "data": json_string,
             "message": message_status
         }
         update_message_json = json.dumps(update_message)
@@ -123,19 +131,49 @@ class ClientHandler(threading.Thread):
                 self.subscribe_to_resource(data["rsrcid"]) # Missing we dont handle if we already looking at resource
     
     def subscribe_to_resource(self, resource_id):
-        if resource_id not in subscriptions:
-            subscriptions[resource_id] = []
-        subscriptions[resource_id].append(self)
-        self.subscribed_resources.append(resource_id)
-        self.wait_for_updates()
+        with client_handler_lock:
+            existing_handler = client_handlers.get(self.client_id)
+            call_wait = False
+            
+            if existing_handler:
+                existing_handler.resource_to_subscribe_to = resource_id
+                existing_handler.subscription_update_requested = True
+            else:
+
+                client_handlers[self.client_id] = self
+                with subscription_lock:
+                    if resource_id not in subscriptions:
+                        subscriptions[resource_id] = []
+                    if self not in subscriptions[resource_id]:
+                        subscriptions[resource_id].append(self)
+
+                self.subscribed_resources.append(resource_id)
+                call_wait = True
+                print(f"Client {self.client_id} subscribed to {resource_id}")
+        
+        if call_wait:
+            self.wait_for_updates()
+    
+    def add_subscriptions(self, resource_id):
+        with subscription_lock:
+            if resource_id not in subscriptions:
+                subscriptions[resource_id] = []
+            if self not in subscriptions[resource_id]:
+                subscriptions[resource_id].append(self)        
     
     def wait_for_updates(self):
         try:
             while True:
                 if self.send_update_trigger:
-                    update_message = self.update_message_instance
-                    self.send_update(update_message)
+                    self.send_update(self.update_message_instance)
                     self.send_update_trigger = False
+                    
+                if self.subscription_update_requested:
+                    if self.resource_to_subscribe_to not in self.subscribed_resources:
+                        self.subscribed_resources.append(self.resource_to_subscribe_to)
+                        self.subscription_update_requested = False
+                        self.add_subscriptions(self.resource_to_subscribe_to)
+                               
         except Exception as e:
             print(f"Error while waiting for updates: {e}")
         finally:

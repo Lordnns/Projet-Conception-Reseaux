@@ -45,24 +45,26 @@ def get_input_auto(request_to_send):
 
 # Fonction qui ouvre un socket client depuis le serveur vers le serveur de référence.
 def server_as_client(request_to_send):
+    print("")
+    validation = True
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-            data, address, port = get_input_auto(request_to_send)
-            if address == 0:
-                return '{' + '"ERROR: INVALID $ ": ' + '"' + data + '"' + '}'
-            server_address = (address, int(port))
-            sock.connect(server_address)
-            client_id = str(uuid.uuid4())
-            sock.sendall(client_id.encode())
-            if sock.recv(1024).decode() == "Received client ID":
-                sock.sendall(data.encode())
-
-            expected = 1
-            received = 0
-            while received < expected:
-                data = sock.recv(1024)
-                received = received + 1
-            return data.decode()
+        data, address, port = get_input_auto(request_to_send)
+        if address == 0:
+            validation = False
+            return '{' + '"ERROR: INVALID $ ": ' + '"' + data + '"' + '}', validation
+        server_address = (address, int(port))
+        sock.connect(server_address)
+        client_id = str(uuid.uuid4())
+        sock.sendall(client_id.encode())
+        if sock.recv(1024).decode() == "Received client ID":
+            sock.sendall(data.encode())
+        expected = 1
+        received = 0
+        while received < expected:
+            data = sock.recv(1024)
+            received = received + 1
+        return data.decode(), validation
     finally:
         sock.close()
 
@@ -98,22 +100,26 @@ def replace_dollar(path_to_reference, my_json, origin_id):
     # vérifie que l'adresse d'envois n'est pas la même que l'adresse
     # de référence pour bloquer l'apparition d'une loop infini
     loop_test = reference.split("/")
+    print("loop_test: ", loop_test[-1])
+    print("origin_id: ", origin_id)
     if loop_test[-1] == origin_id:
         ref_data = {'ERROR:': 'Data is referencing itself'}
         ref_data = json.dumps(ref_data)
         code_string = code_string + "=" + ref_data
         exec(code_string)
-        return my_json
+        validation = False
+        return my_json, validation
 
     # Envois la référence en requête au client-serveur et ajoute celle-ci
     # à place de la ref
-    ref_data = server_as_client(reference)
+    ref_data, validation = server_as_client(reference)
     ref_data = json.loads(ref_data)
     ref_data.pop('rsrc', None)
     ref_data.pop('message', None)
     if 'code' in ref_data.keys():
         if ref_data['code'] == "404":
             ref_data['data'] = "null"
+            validation = False
         else:
             ref_data['code'] = "200"
 
@@ -121,7 +127,7 @@ def replace_dollar(path_to_reference, my_json, origin_id):
     ref_data = json.dumps(ref_data)
     code_string = code_string + "=" + ref_data
     exec(code_string)
-    return my_json
+    return my_json, validation
 
 
 # Fonction récursive qui parcourt la boucle jusqu'à trouver un $ et renvois un string
@@ -131,7 +137,6 @@ def find_dollar(data):
         if len(Key) == 1:
             if Key == "$":
                 return data
-
 
         elif isinstance(data[Key], dict):
             answer = find_dollar(data[Key])
@@ -153,12 +158,15 @@ def find_dollar(data):
 
 # Fonction qui passe le message à get pour vérifier s'il contient des $ de référencement.
 def handle_dollar(data_to_handle, origin_id):
+    validation = True
     data_copy = deepcopy(data_to_handle)  # pour pas modif l'original dans le dic serveur
     reference_path = find_dollar(data_copy)
     while isinstance(reference_path, str):
-        data_copy = replace_dollar(reference_path, data_copy, origin_id)
+        data_copy, validation_check = replace_dollar(reference_path, data_copy, origin_id)
+        if not validation_check:
+            validation = False
         reference_path = find_dollar(data_copy)
-    return data_copy
+    return data_copy, validation
 
 
 

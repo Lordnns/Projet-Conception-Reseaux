@@ -49,6 +49,11 @@ class ClientHandler(threading.Thread):
             return
         data = json.loads(data)
         if data["operation"] == "POST":
+            data_copy2 = deepcopy(data)
+            data_copy2, validate = handle_dollar(data_copy2["data"], data_copy2["rsrcid"])
+            if not validate:
+                self.send_response("Invalid references in data")
+                return
             self.handle_post(data)
         elif data["operation"] == "GET":
             self.handle_get(data)
@@ -80,7 +85,7 @@ class ClientHandler(threading.Thread):
         
         self.send_response(message_json)
         
-        json_string = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"])
+        json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"])
         update_message = {
             "server": server_add,
             "code": "210",
@@ -92,13 +97,13 @@ class ClientHandler(threading.Thread):
         notify_subscribers(data["rsrcid"], update_message_json)
 
     def handle_get(self, data):
-        
+        print("data: ", data)
         with dic_lock:
             dic_copy = dic.copy()
             
         resource_exists = data["rsrcid"] in dic_copy
         if resource_exists:
-            json_string = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"])
+            json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"])
             message = {
                 "server": server_add,
                 "code": "202" if data["protocol"] == "rdo" else "210",

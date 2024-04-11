@@ -6,6 +6,12 @@ import json
 import threading
 import time
 import os
+import uuid
+
+# Generate a unique client ID
+client_id = str(uuid.uuid4())
+print(f"Client ID: {client_id}")
+
 # Additional imports for Windows
 if os.name == 'nt':
     import msvcrt
@@ -113,35 +119,41 @@ def handle_server_communication(message, address, port, protocol):
         try:
             global take_new_command
             s.connect(server_address)
-            s.sendall(message.encode())
-
-            # For "RDO" operations, wait for a single response and then return
-            if protocol == "rdo":
-                response = s.recv(1024).decode()
-                print_server_response("Response:", response)
-                take_new_command = True
+            
+            s.sendall(client_id.encode())
+            accepted = s.recv(1024).decode()
+            if accepted == "Received client ID":
+                s.sendall(message.encode())
+                
+                # For "RDO" operations, wait for a single response and then return
+                if protocol == "rdo":
+                    response = s.recv(1024).decode()
+                    print_server_response("Response:", response)
+                    take_new_command = True
                 
                 
-            # For "WRDO" operations, spawn a new thread to handle continuous updates
-            elif protocol == "wrdo":
-                global is_typing, message_queue
-                message_received = 0
-                while True:
-                    try:
-                        data = s.recv(1024).decode()
-                        message_received += 1
-                        if not data:
-                            print_server_response("Connection closed by server.")
+                # For "WRDO" operations, spawn a new thread to handle continuous updates
+                elif protocol == "wrdo":
+                    global is_typing, message_queue
+                    message_received = 0
+                    while True:
+                        try:
+                            data = s.recv(1024).decode()
+                            message_received += 1
+                            if not data:
+                                print_server_response("Connection closed by server.")
+                                break
+                            if is_typing:
+                                message_queue.put(data)
+                            else:
+                                print_server_response("Update:", data)
+                                if message_received == 1:
+                                    take_new_command = True;
+                        except Exception as e:
+                            print_server_response("Error listening for updates: {e}")
                             break
-                        if is_typing:
-                            message_queue.put(data)
-                        else:
-                            print_server_response("Update:", data)
-                            if message_received == 1:
-                                take_new_command = True;
-                    except Exception as e:
-                        print_server_response("Error listening for updates: {e}")
-                        break
+            else:
+                print_server_response("Error client id not transfered.")
 
         except Exception as e:
             print("Error communicating with server: {e}")

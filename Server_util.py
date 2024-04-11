@@ -1,5 +1,6 @@
 import json
 import socket
+import uuid
 from copy import deepcopy
 
 
@@ -51,7 +52,10 @@ def server_as_client(request_to_send):
                 return '{' + '"ERROR: INVALID $ ": ' + '"' + data + '"' + '}'
             server_address = (address, int(port))
             sock.connect(server_address)
-            sock.sendall(data.encode())
+            client_id = str(uuid.uuid4())
+            sock.sendall(client_id.encode())
+            if sock.recv(1024).decode() == "Received client ID":
+                sock.sendall(data.encode())
 
             expected = 1
             received = 0

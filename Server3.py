@@ -109,7 +109,7 @@ class ClientHandler(threading.Thread):
         message_json = json.dumps(message)
         
         with dic_lock:    
-            if data["rsrcid"] in dic and dic_copy[data["rsrcid"]] == dic[data["rsrcid"]]:
+            if (data["rsrcid"] in dic and dic_copy[data["rsrcid"]] == dic[data["rsrcid"]]) or data["rsrcid"] not in dic:
                 data_has_changed = False
             else:
                 data_has_changed = True

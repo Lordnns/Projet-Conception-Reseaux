@@ -43,18 +43,17 @@ class ClientHandler(threading.Thread):
             print(f"Connection closed for {self.client_address}")
 
     def process_request(self, data):
+        
         print(f"Received: {data}")
+        
         if not validate_json(data):
             self.send_response("request not a JSON")
             return
         data = json.loads(data)
+        
         if data["operation"] == "POST":
-            data_copy2 = deepcopy(data)
-            data_copy2, validate = handle_dollar(data_copy2["data"], data_copy2["rsrcid"])
-            if not validate:
-                self.send_response("Invalid references in data")
-                return
             self.handle_post(data)
+            
         elif data["operation"] == "GET":
             self.handle_get(data)
 
@@ -62,6 +61,14 @@ class ClientHandler(threading.Thread):
         with dic_lock:
             dic_copy = dic.copy()
             dic_original = dic.copy()
+            
+        data_copy2 = deepcopy(data)
+        data_copy2, validate = handle_dollar(data_copy2["data"], data_copy2["rsrcid"])
+        
+        if not validate:
+            data_copy2_json = json.dumps(data_copy2)
+            self.send_response("Invalid references in data" + data_copy2_json)
+            return
             
         if data["rsrcid"] in dic_copy:
             dic_copy[data["rsrcid"]] = data["data"]

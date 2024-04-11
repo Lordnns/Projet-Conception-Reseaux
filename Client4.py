@@ -8,14 +8,16 @@ import time
 import os
 import uuid
 
-# Generate a unique client ID
-client_id = str(uuid.uuid4())
-print(f"Client ID: {client_id}")
-
-# Additional imports for Windows
 if os.name == 'nt':
     import msvcrt
-    
+elif os.name == 'posix':
+    import termios
+    import tty
+
+# Generate a unique client ID
+client_id = str(uuid.uuid4())
+print("Client ID: {}".format(client_id))   
+
 client_add = input('client IP: ')
 stop = 0
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -29,24 +31,52 @@ prompt_written = False
 take_new_command = True
 
 def get_input_non_blocking_unix():
-    
     global is_typing, prompt_written
     
-    console_lock.acquire()
-    if not prompt_written:
-        print('Enter command: ', end='', flush=True)
-        prompt_written = True
-    console_lock.release()
+    old_settings = termios.tcgetattr(sys.stdin)
     
-    while True:
-        input_ready, _, _ = select.select([sys.stdin], [], [], 0.1)
-        if input_ready:
-            is_typing = True
-            message = sys.stdin.readline().strip()
-            is_typing = False
-            prompt_written = False
-            flush_message_queue()
-            return get_input(message)
+    try:
+        # Switch to non-canonical mode
+        tty.setcbreak(sys.stdin.fileno())
+        
+        console_lock.acquire()
+        if not prompt_written:
+            print('Enter command: ', end='', flush=True)
+            prompt_written = True
+        console_lock.release()
+        
+        input_line = ""
+        
+        while True:
+            input_ready, _, _ = select.select([sys.stdin], [], [], 0.1)
+            if input_ready:
+                # Read all available data from stdin
+                is_typing = True
+                data = os.read(sys.stdin.fileno(), 1024).decode('utf-8')  # Adjust size as needed
+                input_line += data.replace('\r', '').replace('\n', '')  # Normalize line endings
+
+                # Check for special characters
+                if '\n' in data:
+                    print()
+                    is_typing = False
+                    prompt_written = False
+                    flush_message_queue()
+                    return get_input(input_line)
+                elif '\x7f' in data:
+                    # Handle backspace within the data
+                    input_line = input_line[:-1]
+                    if input_line == "":
+                        is_typing = False
+
+
+                # After processing the available input, print the entire input line
+                sys.stdout.write('\r\033[K')
+                sys.stdout.write('Enter command: ' + input_line)
+                sys.stdout.flush()
+                
+    finally:
+        # Restore the terminal settings
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
 def get_input_non_blocking_windows():
     global is_typing, prompt_written
@@ -170,10 +200,7 @@ def handle_invalid_command():
     
 
 def rewrite_prompt():
-    # Move the cursor up one line
-    sys.stdout.write('\033[F')
-    # Clear the current line
-    sys.stdout.write('\033[K')
+    print("")
 
 def print_server_response(*args):
     global prompt_written

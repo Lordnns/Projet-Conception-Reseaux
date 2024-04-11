@@ -158,7 +158,6 @@ def handle_dollar(data_to_handle, origin_id):
     while isinstance(reference_path, str):
         data_copy = replace_dollar(reference_path, data_copy, origin_id)
         reference_path = find_dollar(data_copy)
-    data_copy = json.dumps(data_copy)
     return data_copy
 
 

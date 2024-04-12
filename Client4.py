@@ -50,23 +50,22 @@ def get_input_non_blocking_unix():
         while True:
             input_ready, _, _ = select.select([sys.stdin], [], [], 0.1)
             if input_ready:
-                # Read all available data from stdin
                 is_typing = True
                 data = os.read(sys.stdin.fileno(), 1024).decode('utf-8')  # Adjust size as needed
-                input_line += data.replace('\r', '').replace('\n', '')  # Normalize line endings
+                if '\x7f' in data:
+                    # Handle backspace
+                    input_line = input_line[:-1]
+                else:
+                    input_line += data.replace('\r', '').replace('\n', '')  # Normalize line endings
 
-                # Check for special characters
+                # Check for newline, which indicates submission
                 if '\n' in data:
                     print()
                     is_typing = False
                     prompt_written = False
-                    flush_message_queue()
+                    # Assuming flush_message_queue() is a function to handle other operations
+                    flush_message_queue()  
                     return get_input(input_line)
-                elif '\x7f' in data:
-                    # Handle backspace within the data
-                    input_line = input_line[:-1]
-                    if input_line == "":
-                        is_typing = False
 
 
                 # After processing the available input, print the entire input line
@@ -215,11 +214,33 @@ def print_server_response(*args):
         
     finally:
         console_lock.release()
+        
+def print_enter_command():
+    global prompt_written
+    console_lock.acquire()
+    try:
+        if prompt_written:
+            return
+    
+        print('Enter command: ', end='', flush=True)
+        prompt_written = True
+        
+    finally:
+        console_lock.release()
+        
+def print_queue(*args):
+    global prompt_written
+    console_lock.acquire()
+    try:
+        print(*args)
+        
+    finally:
+        console_lock.release()
 
 def flush_message_queue():
     global message_queue
     while not message_queue.empty():
-        print_server_response("Queued Message:", message_queue.get())
+        print_queue("Queued Message:", message_queue.get())
         
 def main():
     global stop

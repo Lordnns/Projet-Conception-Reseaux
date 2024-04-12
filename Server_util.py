@@ -48,8 +48,9 @@ def server_as_client(request_to_send):
     print("")
     validation = True
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    data, address, port = get_input_auto(request_to_send)
     try:
-        data, address, port = get_input_auto(request_to_send)
+
         if address == 0:
             validation = False
             return '{' + '"ERROR: INVALID $ ": ' + '"' + data + '"' + '}', validation
@@ -65,6 +66,17 @@ def server_as_client(request_to_send):
             data = sock.recv(1024)
             received = received + 1
         return data.decode(), validation
+    except Exception:
+        validation = False
+        message = {
+            "server": address,
+            "code": "404",
+            "rsrc": "",
+            "data": "",
+            "message": "ressource inconnue"
+        }
+        message_json = json.dumps(message)
+        return message_json, validation
     finally:
         sock.close()
 
@@ -79,7 +91,7 @@ def is_number(string_to_test):
 
 
 # Fonction qui remplace la référence $ par son contenu.
-def replace_dollar(path_to_reference, my_json, origin_id):
+def replace_dollar(path_to_reference, my_json, origin_id, origin_ip, origin_port):
 
     # Utilise le chemin fourni dans path pour reconstruire la commande sous forme de string.
     # Ce string sera exécuter sous forme de code.
@@ -100,9 +112,7 @@ def replace_dollar(path_to_reference, my_json, origin_id):
     # vérifie que l'adresse d'envois n'est pas la même que l'adresse
     # de référence pour bloquer l'apparition d'une loop infini
     loop_test = reference.split("/")
-    print("loop_test: ", loop_test[-1])
-    print("origin_id: ", origin_id)
-    if loop_test[-1] == origin_id:
+    if loop_test[-1] == origin_id and loop_test[-2] == origin_ip + ":" + str(origin_port):
         ref_data = {'ERROR:': 'Data is referencing itself'}
         ref_data = json.dumps(ref_data)
         code_string = code_string + "=" + ref_data
@@ -157,12 +167,12 @@ def find_dollar(data):
 
 
 # Fonction qui passe le message à get pour vérifier s'il contient des $ de référencement.
-def handle_dollar(data_to_handle, origin_id):
+def handle_dollar(data_to_handle, origin_id, origin_ip, origin_port):
     validation = True
     data_copy = deepcopy(data_to_handle)  # pour pas modif l'original dans le dic serveur
     reference_path = find_dollar(data_copy)
     while isinstance(reference_path, str):
-        data_copy, validation_check = replace_dollar(reference_path, data_copy, origin_id)
+        data_copy, validation_check = replace_dollar(reference_path, data_copy, origin_id, origin_ip, origin_port)
         if not validation_check:
             validation = False
         reference_path = find_dollar(data_copy)

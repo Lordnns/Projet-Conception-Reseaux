@@ -3,7 +3,7 @@ import threading
 import json
 from Server_util import *
 server_add = input('server IP: ')
-port = input('PORT: ')
+port = input("Port: ")
 port = int(port)
 dic = {}
 subscriptions = {}
@@ -18,7 +18,7 @@ class ClientHandler(threading.Thread):
         self.client_sock = client_sock
         self.client_address = client_address
         self.subscribed_resources = []
-        self.send_update_trigger = False;
+        self.send_update_trigger = False
         self.update_message_instance = {}
         self.client_id = ""
         self.resource_to_subscribe_to = None
@@ -64,7 +64,7 @@ class ClientHandler(threading.Thread):
             dic_original = dic.copy()
             
         data_copy2 = deepcopy(data)
-        data_copy2, validate = handle_dollar(data_copy2["data"], data_copy2["rsrcid"])
+        data_copy2, validate = handle_dollar(data_copy2["data"], data_copy2["rsrcid"], server_add, port)
         
         if not validate:
             data_copy2_json = json.dumps(data_copy2)
@@ -93,7 +93,7 @@ class ClientHandler(threading.Thread):
         
         self.send_response(message_json)
         
-        json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"])
+        json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port)
         update_message = {
             "server": server_add,
             "code": "210",
@@ -111,7 +111,7 @@ class ClientHandler(threading.Thread):
             
         resource_exists = data["rsrcid"] in dic_copy
         if resource_exists:
-            json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"])
+            json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port)
             message = {
                 "server": server_add,
                 "code": "202" if data["protocol"] == "rdo" else "210",

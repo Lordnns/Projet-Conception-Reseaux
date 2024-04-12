@@ -179,13 +179,13 @@ def handle_server_communication(message, address, port, protocol):
                                 if message_received == 1:
                                     take_new_command = True;
                         except Exception as e:
-                            print_server_response("Error listening for updates: {e}")
+                            print_server_response("Error listening for updates: {}".format(e))
                             break
             else:
                 print_server_response("Error client id not transfered.")
 
         except Exception as e:
-            print("Error communicating with server: {e}")
+            print("Error communicating with server: {}".format(e))
         
 
 def handle_invalid_command():

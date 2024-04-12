@@ -3,7 +3,8 @@ import threading
 import json
 from Server_util import *
 server_add = input('server IP: ')
-port = 8080
+port = input('PORT: ')
+port = int(port)
 dic = {}
 subscriptions = {}
 client_handlers = {}
@@ -24,10 +25,10 @@ class ClientHandler(threading.Thread):
         self.subscription_update_requested = False
 
     def run(self):
-        print(f"Accepted connection from {self.client_address}")
+        print("Accepted connection from {}".format(self.client_address))
         try:
             self.client_id = self.client_sock.recv(1024).decode()
-            print(f"Received client ID: {self.client_id} from {self.client_address}")
+            print("Received client ID: {} from {}".format(self.client_id, self.client_address))
             self.send_response("Received client ID")
             
             data = self.client_sock.recv(1024).decode('utf-8')
@@ -36,15 +37,15 @@ class ClientHandler(threading.Thread):
             # After processing the initial request, the thread will exit if not subscribed to "wrdo"
 
         except Exception as e:
-            print(f"Error with client {self.client_address}: {e}")
+            print("Error with client {}: {}".format(self.client_address, e))
         finally:
             self.unsubscribe_all()  # Clean up subscriptions
             self.client_sock.close()
-            print(f"Connection closed for {self.client_address}")
+            print("Connection closed for {}".format(self.client_address))
 
     def process_request(self, data):
         
-        print(f"Received: {data}")
+        print("Received: {}".format(data))
         
         if not validate_json(data):
             self.send_response("request not a JSON")
@@ -161,7 +162,7 @@ class ClientHandler(threading.Thread):
 
                 self.subscribed_resources.append(resource_id)
                 call_wait = True
-                print(f"Client {self.client_id} subscribed to {resource_id}")
+                print("Client {} subscribed to {}".format(self.client_id, resource_id))
         
         if call_wait:
             self.wait_for_updates()
@@ -187,7 +188,7 @@ class ClientHandler(threading.Thread):
                         self.add_subscriptions(self.resource_to_subscribe_to)
                                
         except Exception as e:
-            print(f"Error while waiting for updates: {e}")
+            print("Error while waiting for updates: {}".format(e))
         finally:
             self.unsubscribe_all()
 
@@ -203,7 +204,7 @@ class ClientHandler(threading.Thread):
         try:
             self.client_sock.sendall(message.encode())
         except Exception as e:
-            print(f"Error sending response to {self.client_address}: {e}")
+            print("Error sending response to {}: {}".format(self.client_address, e))
     
 def notify_subscribers(resource_id, update_message):
     if resource_id in subscriptions:

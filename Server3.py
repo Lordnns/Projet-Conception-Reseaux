@@ -24,7 +24,6 @@ class ClientHandler(threading.Thread):
         self.client_id = ""
         self.resource_to_subscribe_to = None
         self.subscription_update_requested = False
-        init_local_db(server_add, port)
 
 
     def run(self):
@@ -224,6 +223,8 @@ def notify_subscribers(resource_id, update_message):
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((server_add, port))
 server_socket.listen(5)
+
+init_local_db(server_add, port)
 
 #load the saved data if it exist
 dic = load_data_from_json(os.path.join(get_folder_path(server_add, port), "data.json"))

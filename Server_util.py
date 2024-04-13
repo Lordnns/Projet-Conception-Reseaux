@@ -2,7 +2,7 @@ import json
 import socket
 import uuid
 from copy import deepcopy
-
+import os
 
 # fonction qui valide si l'entré est un JSON
 def validate_json(tested_json):
@@ -178,6 +178,32 @@ def handle_dollar(data_to_handle, origin_id, origin_ip, origin_port):
         reference_path = find_dollar(data_copy)
     return data_copy, validation
 
+# Save dict to json file
+def save_dict_to_json(data_dict, folder_path, filename):
+    file_path = os.path.join(folder_path, filename)
+    with open(file_path, 'w') as json_file:
+        json.dump(data_dict, json_file, indent=4)
+
+# Create a folder for local DB if it does not exist 
+def init_local_db(server_ip, port):
+    folder_name = "{}_{}".format(server_ip, port)
+    folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), folder_name)
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+# Return local DB folder path
+def get_folder_path(server_ip, port):
+    folder_name = "{}_{}".format(server_ip, port)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), folder_name)
+
+# Load the DB into server dict 
+def load_data_from_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as json_file:
+            return json.load(json_file)
+    else:
+        return {}
 
 
 

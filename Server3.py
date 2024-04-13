@@ -12,6 +12,7 @@ dic_lock = threading.Lock()
 client_handler_lock = threading.Lock()
 subscription_lock = threading.Lock()
 
+
 class ClientHandler(threading.Thread):
     def __init__(self, client_sock, client_address):
         super().__init__()
@@ -23,6 +24,8 @@ class ClientHandler(threading.Thread):
         self.client_id = ""
         self.resource_to_subscribe_to = None
         self.subscription_update_requested = False
+        init_local_db(server_add, port)
+
 
     def run(self):
         print("Accepted connection from {}".format(self.client_address))
@@ -103,6 +106,12 @@ class ClientHandler(threading.Thread):
         }
         update_message_json = json.dumps(update_message)
         notify_subscribers(data["rsrcid"], update_message_json)
+
+        with dic_lock:
+            # Save post in json file linked to the server ip and port
+            # Not ideal since we copy all the dict every time but at least we handle server crash this way 
+            save_dict_to_json(dic, get_folder_path(server_add, port), "data.json")
+
 
     def handle_get(self, data):
         print("data: ", data)
@@ -215,6 +224,9 @@ def notify_subscribers(resource_id, update_message):
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((server_add, port))
 server_socket.listen(5)
+
+#load the saved data if it exist
+dic = load_data_from_json(os.path.join(get_folder_path(server_add, port), "data.json"))
 
 while True:
     client_socket, address = server_socket.accept()

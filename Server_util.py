@@ -12,6 +12,24 @@ def validate_json(tested_json):
         return False
     return True
 
+# check if the ip address is possible
+def validate_ip_address(ip):
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        return False
+    
+# check if the port is in the range of existing port
+def validate_port(port):
+    try:
+        port_num = int(port)
+        if 0 < port_num < 65536:
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
 
 # Fonction qui envois la requête de référence depuis le serveur vers l'autre serveur.
 def get_input_auto(request_to_send):
@@ -37,7 +55,7 @@ def get_input_auto(request_to_send):
 
         # Si valide retourne le JSON et ses informations d'envois,
         # sinon renvois la request et les code 0 et 0 pour gestion de cas.
-        if valid == 1:
+        if valid and validate_ip_address(address_in) and validate_port(port_in):
             return message_json, address_in, port_in
         else:
             return request_to_send, 0, 0

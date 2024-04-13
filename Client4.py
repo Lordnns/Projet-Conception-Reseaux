@@ -115,32 +115,70 @@ def get_input_non_blocking():
     elif os.name == 'nt':
         return get_input_non_blocking_windows()
 
+# check if the ip address is possible
+def validate_ip_address(ip):
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        return False
+
+# check if the port is in the range of existing port
+def validate_port(port):
+    try:
+        port_num = int(port)
+        if 0 < port_num < 65536:
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
 def get_input(message):  
-        
-        valid = 1
+    try:
+        valid = True
         
         if message == "stop":
             return 0, 0, 0, None
-        operation, op6, rest = message.partition(" ")
-        if operation != "POST" and operation != "GET":
-            valid = 0
-        protocol, op, rest = rest.partition(":")
-        if protocol != "rdo" and protocol != "wrdo":
-            valid = 0
-        buffer1, op1, rest = rest.partition("/")
-        buffer2, op2, rest = rest.partition("/")
-        address_in, op3, rest = rest.partition(":")
-        port_in, op4, rest = rest.partition("/")
-        rsrcid, op, data_in = rest.partition(" ")
-        if operation == "POST":
-            message = '{'+'"client_address": ' + '"' + client_add + '"' +',"protocol": ' + '"' + protocol + '"' + ', "operation": ' + '"' + operation + '"' + ', "rsrcid": ' + '"' + rsrcid + '"' + ', "data": ' + data_in + '}'
-        if operation == "GET":
-            message = '{'+'"client_address": ' + '"' + client_add + '"' +',"protocol": ' + '"' + protocol + '"' + ', "operation": ' + '"' + operation + '"' + ', "rsrcid": ' + '"' + rsrcid +'"' + '}'
-        if valid == 1:
+
+        operation, _, rest = message.partition(" ")
+        if operation not in {"POST", "GET"}:
+            valid = False
+            raise ValueError("Invalid operation: {}".format(operation))
+
+        protocol, _, rest = rest.partition(":")
+        if protocol not in {"rdo", "wrdo"}:
+            valid = False
+            raise ValueError("Invalid protocol: {}".format(protocol))
+
+        buffer1, _, rest = rest.partition("/")
+        buffer2, _, rest = rest.partition("/")
+        address_in, _, rest = rest.partition(":")
+        port_in, _, rest = rest.partition("/")
+        rsrcid, _, data_in = rest.partition(" ")
+
+        if not (validate_ip_address(address_in)):
+            valid = False
+            raise ValueError("Invalid IP address")
+        
+        if not (validate_port(port_in)):
+            valid = False
+            raise ValueError("Invalid port")
+
+
+        if valid:
+            if operation == "POST":
+                message = '{"client_address": "' + client_add + '", "protocol": "' + protocol + '", "operation": "' + operation + '", "rsrcid": "' + rsrcid + '", "data": ' + data_in + '}'
+            elif operation == "GET":
+                message = '{"client_address": "' + client_add + '", "protocol": "' + protocol + '", "operation": "' + operation + '", "rsrcid": "' + rsrcid + '"}'
+
             return message, address_in, port_in, protocol
-        if valid == 0:
-            handle_invalid_command()
-            return None
+
+    except Exception as e:
+        print("Error processing input:", e)
+        handle_invalid_command()
+        return None
+    
 
 def handle_server_communication(message, address, port, protocol):
     server_address = (address, int(port))

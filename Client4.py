@@ -1,3 +1,4 @@
+from asyncio.windows_events import NULL
 from pickle import FALSE
 import select
 import sys
@@ -164,14 +165,23 @@ def get_input(message):
         if not (validate_port(port_in)):
             valid = False
             raise ValueError("Invalid port")
-
+        path = []
+        current_identity = "{server_address}:{port}/{resource_id}".format(
+            server_address= client_add,
+            port= NULL,
+            resource_id= rsrcid
+        )
+        path.append(current_identity)
+        path_str = str(path)
+        path_json = json.dumps(path_str)
 
         if valid:
             if operation == "POST":
-                message = '{"client_address": "' + client_add + '", "protocol": "' + protocol + '", "operation": "' + operation + '", "rsrcid": "' + rsrcid + '", "data": ' + data_in + '}'
+                message = '{"client_address": "' + client_add + '", "protocol": "' + protocol + '", "operation": "' + operation + '", "rsrcid": "' + rsrcid + '", "path": ' + path_json + ', "data": ' + data_in + '}'
             elif operation == "GET":
-                message = '{"client_address": "' + client_add + '", "protocol": "' + protocol + '", "operation": "' + operation + '", "rsrcid": "' + rsrcid + '"}'
+                message = '{"client_address": "' + client_add + '", "protocol": "' + protocol + '", "operation": "' + operation + '", "rsrcid": "' + rsrcid + '", "path": ' + path_json + '}'
 
+                 
             return message, address_in, port_in, protocol
 
     except Exception as e:

@@ -66,7 +66,8 @@ class ClientHandler(threading.Thread):
             dic_original = dic.copy()
             
         data_copy2 = deepcopy(data)
-        data_copy2, validate = handle_dollar(data_copy2["data"], data_copy2["rsrcid"], server_add, port)
+        print(data_copy2["path"])
+        data_copy2, validate = handle_dollar(data_copy2["data"], data_copy2["rsrcid"], server_add, port, data_copy2["path"])
         
         if not validate:
             data_copy2_json = json.dumps(data_copy2)
@@ -95,7 +96,7 @@ class ClientHandler(threading.Thread):
         
         self.send_response(message_json)
         
-        json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port)
+        json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port, data_copy2["path"])
         update_message = {
             "server": server_add,
             "code": "210",
@@ -118,23 +119,45 @@ class ClientHandler(threading.Thread):
             dic_copy = dic.copy()
             
         resource_exists = data["rsrcid"] in dic_copy
-        if resource_exists:
-            json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port)
+        current_identity = "{server_address}:{port}/{resource_id}".format(
+            server_address=server_add,
+            port=port,
+            resource_id=data['rsrcid']
+        )
+        path = json.loads(data["path"])
+        
+        if current_identity in path:
             message = {
                 "server": server_add,
-                "code": "202" if data["protocol"] == "rdo" else "210",
-                "rsrc": data["rsrcid"],
-                "data": json_string,
-                "message": ""
-            }
-        else:
-             message = {
-                "server": server_add,
-                "code": "404",
+                "code": "500",
                 "rsrc": data["rsrcid"],
                 "data": "",
-                "message": "ressource inconnue"
-             }
+                "message": "Detected infinite loop"
+            }
+        else:
+            
+            path.append(current_identity)
+            updated_path_str = json.dumps(path)
+            data["path"] = updated_path_str
+        
+            if resource_exists:
+                json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port, data["path"])
+                message = {
+                    "server": server_add,
+                    "code": "202" if data["protocol"] == "rdo" else "210",
+                    "rsrc": data["rsrcid"],
+                    "data": json_string,
+                    "message": ""
+                }
+            else:
+                 message = {
+                    "server": server_add,
+                    "code": "404",
+                    "rsrc": data["rsrcid"],
+                    "data": "",
+                    "message": "ressource inconnue"
+                 }
+           
         message_json = json.dumps(message)
         
         with dic_lock:    

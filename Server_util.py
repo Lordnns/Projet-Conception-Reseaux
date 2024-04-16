@@ -1,5 +1,6 @@
 import json
 import socket
+from urllib import request
 import uuid
 from copy import deepcopy
 import os
@@ -32,7 +33,7 @@ def validate_port(port):
         return False
 
 # Fonction qui envois la requête de référence depuis le serveur vers l'autre serveur.
-def get_input_auto(request_to_send):
+def get_input_auto(request_to_send, path):
     while True:
         valid = 1
 
@@ -51,7 +52,8 @@ def get_input_auto(request_to_send):
         rsrcid, op, data_in = rest.partition(" ")
 
         # Construction du JSON à envoyer au serveur.
-        message_json = '{"protocol": ' + '"' + protocol + '"' + ', "operation": ' + '"' + operation + '"' + ', "rsrcid": ' + '"' + rsrcid +'"' '}'
+        message_json = '{"protocol": "' + protocol + '", "operation": "' + operation + '", "rsrcid": "' + rsrcid + '", "path": ' + path + '}'
+        #message_json = '{"protocol": ' + '"' + protocol + '"' + ', "operation": ' + '"' + operation + '"' + ', "rsrcid": ' + '"' + rsrcid +'"' '}'
 
         # Si valide retourne le JSON et ses informations d'envois,
         # sinon renvois la request et les code 0 et 0 pour gestion de cas.
@@ -62,11 +64,11 @@ def get_input_auto(request_to_send):
 
 
 # Fonction qui ouvre un socket client depuis le serveur vers le serveur de référence.
-def server_as_client(request_to_send):
+def server_as_client(request_to_send, path):
     print("")
     validation = True
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    data, address, port = get_input_auto(request_to_send)
+    data, address, port = get_input_auto(request_to_send, path)
     try:
 
         if address == 0:
@@ -109,7 +111,7 @@ def is_number(string_to_test):
 
 
 # Fonction qui remplace la référence $ par son contenu.
-def replace_dollar(path_to_reference, my_json, origin_id, origin_ip, origin_port):
+def replace_dollar(path_to_reference, my_json, origin_id, origin_ip, origin_port, path):
 
     # Utilise le chemin fourni dans path pour reconstruire la commande sous forme de string.
     # Ce string sera exécuter sous forme de code.
@@ -140,7 +142,7 @@ def replace_dollar(path_to_reference, my_json, origin_id, origin_ip, origin_port
 
     # Envois la référence en requête au client-serveur et ajoute celle-ci
     # à place de la ref
-    ref_data, validation = server_as_client(reference)
+    ref_data, validation = server_as_client(reference, path)
     ref_data = json.loads(ref_data)
     ref_data.pop('rsrc', None)
     ref_data.pop('message', None)
@@ -185,12 +187,12 @@ def find_dollar(data):
 
 
 # Fonction qui passe le message à get pour vérifier s'il contient des $ de référencement.
-def handle_dollar(data_to_handle, origin_id, origin_ip, origin_port):
+def handle_dollar(data_to_handle, origin_id, origin_ip, origin_port, path):
     validation = True
     data_copy = deepcopy(data_to_handle)  # pour pas modif l'original dans le dic serveur
     reference_path = find_dollar(data_copy)
     while isinstance(reference_path, str):
-        data_copy, validation_check = replace_dollar(reference_path, data_copy, origin_id, origin_ip, origin_port)
+        data_copy, validation_check = replace_dollar(reference_path, data_copy, origin_id, origin_ip, origin_port, path)
         if not validation_check:
             validation = False
         reference_path = find_dollar(data_copy)

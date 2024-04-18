@@ -14,8 +14,17 @@ def validate_json(tested_json):
 
 # check if the ip address is possible
 def validate_ip_address(ip):
+    # Check for IPv4 and IPv6 addresses
+    for family in (socket.AF_INET, socket.AF_INET6):
+        try:
+            socket.inet_pton(family, ip)
+            return True
+        except socket.error:
+            continue
+
+    # Check for DNS name
     try:
-        socket.inet_aton(ip)
+        socket.gethostbyname(ip)
         return True
     except socket.error:
         return False

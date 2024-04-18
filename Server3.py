@@ -2,9 +2,6 @@ import socket
 import threading
 import json
 from Server_util import *
-server_add = input('server IP: ')
-port = input("Port: ")
-port = int(port)
 dic = {}
 subscriptions = {}
 client_handlers = {}
@@ -219,7 +216,18 @@ def notify_subscribers(resource_id, update_message):
         for client_handler in subscriptions[resource_id]:
             client_handler.update_message_instance = update_message
             client_handler.send_update_trigger = True
-        
+
+
+while True :
+    server_add = input('server IP: ')
+    port = input("Port: ")
+
+    if validate_ip_address(server_add) and validate_port(port):
+        port = int(port)
+        break
+    else:
+        print("Invalid IP or Port, try again")
+
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((server_add, port))
 server_socket.listen(5)

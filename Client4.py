@@ -219,6 +219,7 @@ def handle_server_communication(message, address, port, protocol):
                             message_received += 1
                             if not data:
                                 #print_server_response("Connection closed by server.")
+                                take_new_command = True
                                 break
                             if is_typing:
                                 message_queue.put(data)
@@ -228,12 +229,15 @@ def handle_server_communication(message, address, port, protocol):
                                     take_new_command = True;
                         except Exception as e:
                             print_server_response("Error listening for updates: {}".format(e))
+                            take_new_command = True
                             break
             else:
                 print_server_response("Error client id not transfered.")
+                take_new_command = True
 
         except Exception as e:
             print("Error communicating with server: {}".format(e))
+            take_new_command = True
         
 
 def handle_invalid_command():

@@ -92,12 +92,12 @@ class ClientHandler(threading.Thread):
         
         self.send_response(message_json)
         
-        json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port)
+        # json_string, validate = handle_dollar(dic_copy[data["rsrcid"]], data["rsrcid"], server_add, port)
         update_message = {
             "server": server_add,
             "code": "210",
             "rsrc": data["rsrcid"],
-            "data": json_string,
+            "data": data_copy2,
             "message": message_status
         }
         update_message_json = json.dumps(update_message)

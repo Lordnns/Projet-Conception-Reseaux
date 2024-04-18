@@ -121,7 +121,10 @@ def is_number(string_to_test):
 def replace_dollar(path_to_reference, my_json, origin_id, origin_ip, origin_port):
 
     # Utilise le chemin fourni dans path pour reconstruire la commande sous forme de string.
-    # Ce string sera exécuter sous forme de code.
+    # Ce string sera exécuter sous forme de code. Pas idéal, mais fonctionne pour le moment.
+    # Opère sur le JSON et non son contenu, risque mitigé.
+    # Idéalement il faudrait refaire le code pour qu'il change directement en place dans Find_dollar.
+
     split_path = path_to_reference.split(" ")
     counter = 1
     code_string = "my_json"

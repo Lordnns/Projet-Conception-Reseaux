@@ -110,7 +110,6 @@ class ClientHandler(threading.Thread):
 
 
     def handle_get(self, data):
-        print("data: ", data)
         with dic_lock:
             dic_copy = dic.copy()
             
